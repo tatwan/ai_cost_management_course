@@ -1,0 +1,26 @@
+[project]
+name = "ai-cost-management-course"
+version = "1.0.0"
+description = "Live demo notebooks for the AI Cost Management and Token Utilization masterclass"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.40",
+    "openai>=1.50",
+    "tiktoken>=0.8",
+    "pandas>=2.2",
+    "matplotlib>=3.9",
+    "numpy>=1.26",
+    "python-dotenv>=1.0",
+    "ipykernel>=6.29",
+    "jupyterlab>=4.2",
+    "ipywidgets>=8.1",
+]
+
+[project.optional-dependencies]
+compress = ["llmlingua>=0.2"]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["notebooks"]
