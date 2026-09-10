@@ -1,81 +1,88 @@
-# AI Cost Management and Token Utilization — Course Package
-**4-hour masterclass · vendor-neutral · September 2026**
+# AI Cost Management and Token Utilization
 
-Built against the approved Pluralsight outline. Audience: IT leadership and finance managers alongside AI engineers, architects and product managers.
+**Unit prices collapsed. Bills went up. Both are true — and the gap between them is the subject of this course.**
 
----
+This repository is a 4-hour masterclass plus seven runnable notebooks. You will learn how LLM inference is actually billed, which architectural choices move the bill by 10–100×, and how to measure, cap, and attribute spend so the saving survives the next invoice.
 
-## What is in here
-
-| File | What it is |
-|---|---|
-| `AI_Cost_Management_and_Token_Utilization.pptx` | **The deck.** 61 slides, full speaker notes on every slide, timing, exercises and demo cues. |
-| `RESEARCH_DOSSIER.md` | **The factual backbone.** Every number on every slide, with its primary source — plus a correction table for the agent-research files. |
-| `DEMO_GUIDE.md` | **Instructor run-sheets.** Exact click-paths for the 8 website demos, run order for the 7 notebooks, pre-flight checklist and a fallback matrix. |
-| `notebooks/*.ipynb` | **7 runnable demos.** Live API calls, cost ledger printed by every cell, Colab-ready. |
-| `build_deck.js` | The deck generator, if you want to change content and rebuild. |
-| `build_notebooks.py` | The notebook generator. |
+It is vendor-neutral. The notebooks run against **OpenAI or Anthropic** — you only need one API key.
 
 ---
 
-## The deck at a glance
+## Who this is for
 
-61 slides across the approved four-module structure, built to the wow-factor archetypes — sourced big-number slides, framework grids, semantic decision cards, comparison tables, and a synthesis band closing every dense slide with its "so what".
+- Engineers and architects shipping LLM features who just saw the first production bill
+- Product managers who need a cost model that survives “we added an agent”
+- Finance, FinOps, and IT leadership who are asked to approve a number they cannot yet forecast
 
-| | Module | Slides | Demos |
-|---|---|---|---|
-| 0:00 | Opening — the paradox | 7 | — |
-| 0:12 | **M1** Token economics & forecasting | 15 | W1, W3, W4, W5 · N1 |
-| 1:10 | **M2** Prompt & retrieval optimization | 18 | N2, N3, N4, N5 |
-| 2:10 | **M3** Model selection & routing | 12 | W3 · N6 |
-| 3:10 | **M4** Governance, FinOps & ROI | 14 | W6, W7, W8 · N7 |
-| 3:52 | Close — 30-60-90 and the commitment | 4 | — |
-
-**Speaker notes are on every slide.** They carry the delivery guidance, the discussion prompts, the expected workshop answers, and the "say this out loud" moments — not a restatement of the slide.
-
-Four slides are built as take-home artefacts people will photograph: the verified rate card, the tagging schema, the 30-60-90 plan, and the savings-by-lever reference.
+You should be comfortable with APIs and cloud bills. You do not need to have trained a model.
 
 ---
 
-## The argument the course makes
+## What you will walk away able to do
 
-> **Unit prices collapsed. Bills went up. Both are true — and the gap between them is the entire subject.**
+1. **Forecast per completed task**, not per million tokens — including agent steps, cache hits, and retries.
+2. **Turn on prompt caching without silently invalidating it** (the timestamp-in-the-prefix bug).
+3. **Cut context and RAG input** and prove quality held on a fixed eval set.
+4. **Route routine work to a cheaper model** and judge the result on cost-per-successful-task, including cleanup.
+5. **Tag, cap, and kill runaway spend** — the measurement layer most enterprises take six months to build.
 
-1. **Token price is not the unit of consumption.** The task is. Agentic tasks consume 5–30× the tokens of a chat turn (Gartner 2026) — and the deck *derives* that number from arithmetic rather than quoting it.
-2. **Model tier is the biggest single line.** 107× spread for identical behaviour, computed from the verified rate card.
-3. **Agent cost is input cost.** Agents re-read accumulated context at every step, which is why context engineering — not output tuning — is where agent bills are won.
-4. **Divide by the success rate.** Cost per completed task, including cleanup. Cleanup frequently exceeds the API bill, which makes reliability a cost lever.
-5. **FinOps is a practice, not a project.** Track → Attribute → Control → Optimize, in that order.
-
----
-
-## Editorial standards applied
-
-- **Every number on a slide has a primary or peer-reviewed source.** Vendor-blog percentages appear only as speaker-note colour, never as a headline stat.
-- **All pricing was read from the provider's own documentation on 5 September 2026** — Anthropic, OpenAI, Google and DeepSeek — not from secondary summaries.
-- **Honest ranges over headline numbers.** The routing module shows both the 85–98% benchmark results *and* UCCI's 31% (95% CI 27–35%) on a real production workload, and explains why they differ.
-- **The caching caveat is said out loud**: a 90% input discount lands as roughly 30% off the total bill, because output is never cached.
-- **Every cost claim is paired with a quality gate.** Cost reduction without an eval score is an unverified regression, and the notebooks enforce that pattern.
-
-`RESEARCH_DOSSIER.md` §9 lists what the agent-research files got wrong, including two claims that verification directly contradicted. Worth reading before reusing any of those files.
+The through-line: **never present a cost reduction without a quality number next to it.**
 
 ---
 
-## Rebuilding
+## The seven lessons
+
+Work through these in order. Each notebook tells you what is about to happen, what to watch for, and why it matters *before* you run the cell. Blockquotes marked **Presenting:** are live-demo cues; if you are studying solo, treat them as the takeaway.
+
+| # | Notebook | You will | Key? | Time |
+|---|----------|----------|------|------|
+| 1 | [`notebooks/01_token_economics.ipynb`](notebooks/01_token_economics.ipynb) | Count the same instruction five ways, price 1M identical calls (~107× spread), then toggle agent steps / cache / routing on a forecast | Optional | ~8 min |
+| 2 | [`notebooks/02_prompt_caching.ipynb`](notebooks/02_prompt_caching.ipynb) | See a cache write, a cache hit, then a silent miss caused by one timestamp | Required | ~8 min |
+| 3 | [`notebooks/03_context_compression.ipynb`](notebooks/03_context_compression.ipynb) | Compress a bloated system prompt 20–40% and run a 5-question eval on both versions | Required for eval | ~10 min |
+| 4 | [`notebooks/04_rag_cost.ipynb`](notebooks/04_rag_cost.ipynb) | Sweep retrieval `k`, find the smallest k that still answers, compare to stuffing the whole corpus | Required for sweep | ~12 min |
+| 5 | [`notebooks/05_semantic_cache.ipynb`](notebooks/05_semantic_cache.ipynb) | Stack exact + semantic cache, then watch two “similar” cancel-order queries collide | Required for traffic | ~8 min |
+| 6 | [`notebooks/06_routing_cascade.ipynb`](notebooks/06_routing_cascade.ipynb) | Build a three-tier cascade, then divide by success rate until the cheaper route is the expensive one | Required | ~15 min |
+| 7 | [`notebooks/07_finops_telemetry.ipynb`](notebooks/07_finops_telemetry.ipynb) | Tag calls, fire a hard budget, isolate tenants, kill a looping agent | Required | ~12 min |
+
+Setup, model overrides, and what to do when a live call fails: **[notebooks/README.md](notebooks/README.md)**.
+
+---
+
+## Run the notebooks
+
+You need [uv](https://docs.astral.sh/uv/) and one API key (OpenAI or Anthropic).
 
 ```bash
-# Deck
-npm install pptxgenjs        # if not present
-node build_deck.js
-
-# Notebooks
-python3 build_notebooks.py
+uv sync
+cp .env.example .env          # add OPENAI_API_KEY or ANTHROPIC_API_KEY
+uv run jupyter lab notebooks/
 ```
+
+- **One key is enough.** If both are set, Anthropic is the default (clearer cache metadata). Force a vendor with `LLM_PROVIDER=openai`.
+- **Lesson 1 runs without a key.** Lessons 2–7 need a live key for the cells that call a model; if a call fails, the notebook continues with a rehearsal fallback so you can still read the argument.
+- Budget **about $2–5** to run everything once on the mid tier (lesson 7 uses the cheap tier on purpose).
+- Rate-card prices were last checked **5 September 2026**. They move. Re-check the provider pricing pages before you quote them.
 
 ---
 
-## Before you teach
+## The argument, in five lines
 
-**Re-verify the rate card.** It is the deck's credibility anchor and prices move. Open the four pricing pages, check the numbers on the rate-card slide and in notebook cell 2, and update both if anything has changed. `DEMO_GUIDE.md` has the full pre-flight checklist.
+1. **Token price is not the unit of consumption. The task is.** A chat turn and an agentic task are not the same product.
+2. **Model tier is the largest single line.** Identical behaviour, ~107× spread on the verified rate card.
+3. **Agent cost is input cost.** Agents re-read accumulated context at every step. Context engineering beats output tweaking.
+4. **Divide by the success rate, then add cleanup.** A cheaper route that fails more can be the expensive one.
+5. **FinOps is a practice, not a project.** Track → Attribute → Control → Optimize — in that order.
 
-One known dated item: **Gemini 3.x Flash promotional pricing ends 31 December 2026 and doubles on 1 January 2027.** If you teach near that date, the slide needs a one-line update — and it is worth calling out live as an example of a forecast risk that belongs in a budget rather than a footnote.
+Honest ranges over headlines: a 90% input-cache discount is ~30% off the **total** bill (output is never cached). Routing papers quote 85–98%; a production cascade on real traffic (UCCI, 2026) was **31%** (95% CI 27–35%). Plan for the second; celebrate the first.
+
+
+
+---
+
+## Regenerating the notebooks
+
+The `.ipynb` files are generated from [`build_notebooks.py`](build_notebooks.py):
+
+```bash
+uv run python build_notebooks.py
+```
