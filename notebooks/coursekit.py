@@ -23,18 +23,20 @@ from dotenv import load_dotenv
 # ---------------------------------------------------------------------------
 # Rate card — illustrative, verified 5 September 2026. Re-check before class.
 # USD per 1,000,000 tokens.  cw = cache write, cr = cache read.
+# OpenAI, Gemini (implicit) and DeepSeek charge no cache-write premium, so their
+# cw equals inp. Anthropic charges 1.25x input for a 5-minute cache write.
 # ---------------------------------------------------------------------------
 PRICES: dict[str, dict[str, float]] = {
     "deepseek-v4-flash": dict(inp=0.14, out=0.28, cw=0.14, cr=0.0028),
-    "gpt-5.6-luna": dict(inp=0.20, out=1.20, cw=0.25, cr=0.02),
+    "gpt-5.6-luna": dict(inp=0.20, out=1.20, cw=0.20, cr=0.02),
     "gemini-3.5-flash-lite": dict(inp=0.30, out=2.50, cw=0.30, cr=0.03),
     "gemini-3.8-flash": dict(inp=0.75, out=3.75, cw=0.75, cr=0.075),
     "claude-haiku-4-5": dict(inp=1.00, out=5.00, cw=1.25, cr=0.10),
     "claude-sonnet-5": dict(inp=2.00, out=10.00, cw=2.50, cr=0.20),
-    "gpt-5.6-terra": dict(inp=2.00, out=12.00, cw=2.50, cr=0.20),
-    "gpt-5.6-sol": dict(inp=4.00, out=20.00, cw=5.00, cr=0.40),
+    "gpt-5.6-terra": dict(inp=2.00, out=12.00, cw=2.00, cr=0.20),
+    "gpt-5.6-sol": dict(inp=4.00, out=20.00, cw=4.00, cr=0.40),
     "claude-opus-5": dict(inp=5.00, out=25.00, cw=6.25, cr=0.50),
-    "gpt-6-astra": dict(inp=10.00, out=50.00, cw=12.50, cr=1.00),
+    "gpt-6-astra": dict(inp=10.00, out=50.00, cw=10.00, cr=1.00),
     "claude-fable-5-1": dict(inp=10.00, out=50.00, cw=12.50, cr=0.25),
 }
 
@@ -52,6 +54,8 @@ DEFAULT_TIERS = {
 }
 
 LEDGER: list[dict[str, Any]] = []
+_NO_THINKING_OFF: set[str] = set()          # Anthropic models that reject thinking=disabled
+_OPENAI_OPTS: dict[str, dict[str, Any]] = {}  # per-model request options that worked
 PROVIDER: str | None = None
 MODELS = type("Models", (), {"floor": "", "mid": "", "frontier": ""})()
 _CLIENT = None
@@ -242,6 +246,29 @@ def ntok(text: str) -> int:
     return len(enc.encode(text))
 
 
+def vendor_tokens(text: str, model: str | None = None) -> tuple[int | None, str]:
+    """Count tokens the way the live provider will bill them.
+
+    Anthropic has a free count_tokens endpoint; tiktoken is OpenAI's own
+    tokenizer, so for OpenAI it is already the right answer. Offline we
+    return (None, reason) rather than pretend.
+    """
+    _ensure_boot()
+    if PROVIDER == "anthropic" and _CLIENT is not None:
+        try:
+            r = _CLIENT.messages.count_tokens(
+                model=model or MODELS.mid,
+                messages=[{"role": "user", "content": text}],
+            )
+            # count_tokens includes a few tokens of message framing.
+            return int(r.input_tokens), "anthropic count_tokens (includes message framing)"
+        except Exception as exc:  # noqa: BLE001
+            return None, f"count_tokens failed: {type(exc).__name__}"
+    if PROVIDER == "openai":
+        return ntok(text), "tiktoken o200k_base (OpenAI's own encoding)"
+    return None, "offline: no provider to ask"
+
+
 def token_pieces(text: str) -> list[str]:
     import tiktoken
 
@@ -328,7 +355,11 @@ def parse_openai_response(raw: Any, model: str) -> Result:
 
 def parse_anthropic_response(raw: Any, model: str) -> Result:
     u = raw.usage
-    text = raw.content[0].text
+    # Newer Claude models can return a thinking block before the text, so
+    # never assume content[0] is the answer.
+    text = "".join(
+        getattr(b, "text", "") for b in raw.content if getattr(b, "type", "") == "text"
+    )
     cw = int(getattr(u, "cache_creation_input_tokens", 0) or 0)
     cr = int(getattr(u, "cache_read_input_tokens", 0) or 0)
     norm = normalize_usage(
@@ -425,6 +456,17 @@ def _anthropic_complete(
             ]
         else:
             kwargs["system"] = system
+    # Sonnet 5 and Opus 5 think by default. Thinking is billed as output and eats
+    # into max_tokens, which makes the small, cheap calls in these labs come back
+    # truncated. Switch it off where the model allows; remember models that refuse.
+    if model not in _NO_THINKING_OFF:
+        try:
+            raw = _CLIENT.messages.create(**kwargs, thinking={"type": "disabled"})
+            return parse_anthropic_response(raw, model)
+        except Exception as exc:  # noqa: BLE001
+            if "thinking" not in str(exc).lower():
+                raise
+            _NO_THINKING_OFF.add(model)
     raw = _CLIENT.messages.create(**kwargs)
     return parse_anthropic_response(raw, model)
 
@@ -442,26 +484,46 @@ def _openai_complete(
     if system:
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt})
-    try:
-        raw = _CLIENT.chat.completions.create(
-            model=model, messages=messages, max_tokens=max_tokens
-        )
-    except Exception as exc:
-        msg = str(exc).lower()
-        if "max_completion_tokens" in msg or "unsupported parameter" in msg and "max_tokens" in msg:
-            raw = _CLIENT.chat.completions.create(
-                model=model, messages=messages, max_completion_tokens=max_tokens
-            )
-        else:
+
+    # Current OpenAI models want max_completion_tokens; older ones want max_tokens.
+    # Reasoning models also spend hidden reasoning tokens out of that same budget,
+    # so we ask for the lowest reasoning effort the model accepts. Whatever works
+    # is remembered per model so we only pay for the discovery once.
+    opts = _OPENAI_OPTS.get(model)
+    candidates = [opts] if opts else [
+        {"limit": "max_completion_tokens", "reasoning_effort": "none"},
+        {"limit": "max_completion_tokens", "reasoning_effort": "minimal"},
+        {"limit": "max_completion_tokens", "reasoning_effort": None},
+        {"limit": "max_tokens", "reasoning_effort": None},
+    ]
+    last_exc: Exception | None = None
+    for c in candidates:
+        kwargs: dict[str, Any] = {"model": model, "messages": messages, c["limit"]: max_tokens}
+        if c["reasoning_effort"]:
+            kwargs["reasoning_effort"] = c["reasoning_effort"]
+        try:
+            raw = _CLIENT.chat.completions.create(**kwargs)
+        except Exception as exc:  # noqa: BLE001
+            msg = str(exc).lower()
+            if "unsupported" in msg or "reasoning_effort" in msg or "max_tokens" in msg:
+                last_exc = exc
+                continue
             raise
-    return parse_openai_response(raw, model)
+        _OPENAI_OPTS[model] = c
+        result = parse_openai_response(raw, model)
+        if not result.text and result.reasoning_tokens:
+            print(f"  (note: {result.reasoning_tokens} hidden reasoning tokens used the whole "
+                  f"max_tokens={max_tokens} budget, so the visible answer is empty)")
+        return result
+    assert last_exc is not None
+    raise last_exc
 
 
 def _fallback_result(prompt: str, model: str, system: str | None) -> Result:
     approx_in = ntok((system or "") + prompt)
     approx_out = 80
     return Result(
-        text="[rehearsal fallback — live API call failed; continuing the teaching arc]",
+        text="[offline placeholder: no model was called, so there is no real answer here]",
         model=model,
         input_tokens=approx_in,
         output_tokens=approx_out,

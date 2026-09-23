@@ -15,11 +15,14 @@ dependencies = [
     "ipykernel>=6.29",
     "jupyterlab>=4.2",
     "ipywidgets>=8.1",
+    "litellm>=1.102.1",
 ]
 
 [project.optional-dependencies]
 compress = ["llmlingua>=0.2"]
-dev = ["pytest>=8.0"]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "nbclient>=0.10"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
