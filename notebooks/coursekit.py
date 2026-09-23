@@ -228,7 +228,11 @@ def ledger() -> pd.DataFrame:
     if df.empty:
         print("no calls yet")
         return df
-    print(f"\nTOTAL SPENT IN THIS NOTEBOOK: {usd(df.usd.sum())}")
+    offline = df.note.astype(str).str.contains("placeholder")
+    print(f"\nTOTAL SPENT IN THIS NOTEBOOK: {usd(df.usd[~offline].sum())}")
+    if offline.any():
+        print(f"({offline.sum()} placeholder rows are estimates only, "
+              f"{usd(df.usd[offline].sum())} that was never actually spent)")
     return df
 
 
@@ -424,7 +428,7 @@ def boot(*, reset: bool = True) -> Config:
         print("Switch with LLM_PROVIDER=openai or LLM_PROVIDER=anthropic in .env")
     else:
         print("  Provider : none (offline)")
-        print("  Arithmetic cells still run. Live cells will use rehearsal fallbacks.")
+        print("  Arithmetic cells still run. Cells that need a model print a placeholder.")
         print("  Add OPENAI_API_KEY or ANTHROPIC_API_KEY to .env for live calls.")
     print("  Rate card: verified 5 Sep 2026 — re-check before presenting.")
     print("=" * 64)
@@ -545,17 +549,17 @@ def complete(
 ) -> Result:
     """One chat turn. Logs to the ledger when ``label`` is set.
 
-    On API failure the notebook keeps going with a rehearsal result unless
+    On API failure the notebook keeps going with a placeholder result unless
     ``DEMO_STRICT=1`` is set — so a 401 in the room does not kill the arc.
     """
     _ensure_boot()
     model = model or MODELS.mid
     if PROVIDER is None or _CLIENT is None:
-        print("⚠ No API key — using a rehearsal result.")
+        print("(offline: no API key, so this is a placeholder, not a model answer)")
         result = _fallback_result(prompt, model, system)
         if label:
             log_call(label, result.model, inp=result.fresh_input, out=result.output_tokens,
-                     note="offline fallback")
+                     note="offline placeholder")
         return result
     try:
         if PROVIDER == "anthropic":
@@ -567,13 +571,17 @@ def complete(
                 prompt, system=system, model=model, max_tokens=max_tokens, cache=cache
             )
     except Exception as exc:
-        print(f"⚠ API call failed ({type(exc).__name__}: {exc})")
+        # Print the type and status only: provider error text can echo part of the key.
+        status = getattr(exc, "status_code", None)
+        print(f"⚠ API call failed: {type(exc).__name__}" + (f" (HTTP {status})" if status else ""))
         if os.environ.get("DEMO_STRICT"):
             raise
-        print("  Continuing with a rehearsal result so the rest of the notebook still runs.")
+        print("  Continuing with a placeholder so the rest of the notebook still runs.")
         result = _fallback_result(prompt, model, system)
 
     if label:
+        if result.fallback:
+            note = "failed-call placeholder"
         hit = "CACHE HIT" if result.cache_read else note
         log_call(
             label,
