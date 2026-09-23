@@ -80,20 +80,3 @@ uv run jupyter lab notebooks/
 5. **FinOps is a practice, not a project.** Track → Attribute → Control → Optimize — in that order.
 
 Honest ranges over headlines: a 90% input-cache discount does not take 90% off the bill. Output is never cached, so the saving depends on how much of your bill is input: roughly 30% for a chat-style workload and closer to 60% for a RAG-style one (Lesson 2 works both out). Routing papers quote 85–98%; a production cascade on real traffic (UCCI, 2026) was **31%** (95% CI 27–35%). Plan for the second; celebrate the first.
-
-
-
----
-
-## Regenerating the notebooks
-
-The `.ipynb` files are generated from [`build_notebooks.py`](build_notebooks.py):
-
-```bash
-uv run python build_notebooks.py                  # rebuild all eight, no outputs
-uv run python build_notebooks.py 02 06            # rebuild selected lessons
-uv run python build_notebooks.py --execute 08     # rebuild and run live, keeping the outputs
-uv run pytest                                     # cost-math tests
-```
-
-Edit the build script, not the `.ipynb` files. Hand edits to a notebook are overwritten on the next build.
