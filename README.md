@@ -49,6 +49,8 @@ The notebooks are committed with the outputs from a real run, so you can read th
 
 Setup, model overrides, and what to do when a live call fails: **[notebooks/README.md](notebooks/README.md)**.
 
+Where the numbers come from (rate card, statistics, papers, and the arithmetic behind the slides): **[RESEARCH_DOSSIER.md](RESEARCH_DOSSIER.md)**.
+
 ---
 
 ## Run the notebooks
