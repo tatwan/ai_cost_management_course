@@ -1,0 +1,10 @@
+.DS_Store
+.venv
+.env
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+.pytest_cache/
+spans.jsonl
+notebooks/spans.jsonl
+
