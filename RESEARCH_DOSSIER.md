@@ -205,15 +205,19 @@ prefixes are silently not cached, with no error.
 ### 2.7 Where forecasts go wrong
 
 1. **Forecasting per token instead of per task.** Researchers at the Stanford
-   Digital Economy Lab found identical agents on identical tasks varied up to
-   30× in cost between runs, and frontier models were poor at predicting their
-   own token use.
+   Digital Economy Lab found that runs of the same agent on the same coding
+   task differed by up to 30× in total tokens, and that frontier models
+   underestimate their own token use. Agentic coding tasks used about 1,000×
+   the tokens of code chat, driven by input rather than output
+   ([Bai et al., April 2026](https://arxiv.org/abs/2604.22750)).
 2. **Costs outside the model invoice.** Retrieval, embeddings, reranking,
    observability, retries, and human review.
-3. **Adoption curves.** Uber reportedly used its entire 2026 AI coding budget
-   in four months across ~5,000 engineers ($150–$250 per engineer per month
-   typical, $500–$2,000 for heavy users), then capped spend at $1,500 per
-   employee per tool per month. Linear forecasts don't survive adoption.
+3. **Adoption curves.** Uber used its entire 2026 AI budget in four months,
+   then capped spend at $1,500 per employee per agentic coding tool per month
+   ([Bloomberg, 2 June 2026](https://www.bloomberg.com/news/articles/2026-06-02/uber-caps-usage-of-ai-tools-like-claude-code-to-cut-costs);
+   [TechCrunch](https://techcrunch.com/2026/06/02/uber-caps-employee-ai-spending-after-blowing-through-budget-in-four-months/)).
+   Reported per-engineer figures (~5,000 engineers, $150–$250 a month typical,
+   $500–$2,000 for heavy users) are not in those articles. Linear forecasts don't survive adoption.
    Model a best, base, and worst case with a wide spread between them.
 
 ---
@@ -628,9 +632,12 @@ Measure your own before and after.
   numbers (the chunking benchmark synthesis, the self-hosting guide, the
   agentic-cost and inference-statistics round-ups below). They're linked so you
   can trace them. Follow them back to the original before you quote one.
-- **Two figures have no direct link here:** the Stanford Digital Economy Lab
-  run-to-run variance (§2.7) and the Uber coding-budget story (§2.7). Treat them
-  as illustrations and verify them before repeating them.
+- **One set of figures has no direct link here:** Uber's per-engineer spend
+  (§2.7). The four-month budget and the $1,500 cap are linked; treat the
+  per-engineer numbers as illustrations and verify them before repeating them.
+- A figure that "re-sent context is 62% of agent inference spend", credited to
+  the Stanford Digital Economy Lab, was left out: the lab's paper doesn't
+  contain it and no primary source was found.
 - Some widely repeated numbers were left out because they couldn't be traced
   to a primary source: a "$47,000 in 11 days" agent-loop story, "72% of AI
   cost sits outside the model invoice", and "31% of enterprise queries are
@@ -663,6 +670,9 @@ Measure your own before and after.
 - Gartner, GenAI cost per resolution (Jan 2026): https://www.gartner.com/en/newsroom/press-releases/2026-01-26-gartner-predicts-genai-cost-per-resolution-for-customer-service-will-exceed-offshore-human-agent-costs-by-2030
 - DoiT, *Cost per task vs cost per token*: https://www.doit.com/blog/cost-per-task-vs-cost-per-token
 - Artificial Analysis (live cost-vs-intelligence comparison): https://artificialanalysis.ai/
+- Bai et al., *How Do AI Agents Spend Your Money? Analyzing and Predicting Token Consumption in Agentic Coding Tasks* (Stanford Digital Economy Lab, April 2026): https://arxiv.org/abs/2604.22750
+- Bloomberg, Uber caps employee AI tool spending (2 June 2026): https://www.bloomberg.com/news/articles/2026-06-02/uber-caps-usage-of-ai-tools-like-claude-code-to-cut-costs
+- TechCrunch, Uber caps employee AI spending (2 June 2026): https://techcrunch.com/2026/06/02/uber-caps-employee-ai-spending-after-blowing-through-budget-in-four-months/
 
 **Secondary write-ups (check the original before quoting)**
 - Gartner, 50% of GenAI projects over budget by 2028 (news report): https://thejournal.com/articles/2026/06/22/report-half-of-gen-ai-projects-could-exceed-budget-by-2028.aspx
